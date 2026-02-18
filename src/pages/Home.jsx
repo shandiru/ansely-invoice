@@ -49,6 +49,8 @@ export default function AnselyInvoice() {
   const [invoiceNo,setInvoiceNo]=useState(""); const [date,setDate]=useState(""); const [custName,setCustName]=useState(""); const [custAddr,setCustAddr]=useState(""); const [activeTab,setActiveTab]=useState("Monthly");
   const [selMonths,setSelMonths]=useState([]); const [selLite,setSelLite]=useState([]); const [selPro,setSelPro]=useState([]);
   const [lineItems,setLineItems]=useState([]);
+  const [discountPercent, setDiscountPercent] = useState("");
+
   const nextId=useRef(1); const getId=()=>String(nextId.current++);
   const inp=(ex={})=>({ border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 10px",fontSize:13,outline:"none",background:C.white,...ex });
   const catColor=cat=>cat==="Monthly"?C.navy:cat==="React Lite"?"#B34A10":cat==="React Pro"?C.orange:"#888";
@@ -116,7 +118,9 @@ export default function AnselyInvoice() {
   };
   const addManualItem=()=>setLineItems(prev=>[...prev,{id:getId(),label:"",category:activeTab,qty:1,amount:"",manual:true}]);
 
-  const total=lineItems.reduce((s,l)=>s+(parseFloat(l.amount)||0)*(parseFloat(l.qty)||1),0);
+  const subtotal = lineItems.reduce((s,l)=>s+(parseFloat(l.amount)||0)*(parseFloat(l.qty)||1),0);
+  const discountAmount = subtotal * ((parseFloat(discountPercent) || 0) / 100);
+  const finalTotal = subtotal - discountAmount;
 
   const handleDownload=()=>{
     const s=document.createElement("script");
@@ -155,28 +159,24 @@ export default function AnselyInvoice() {
       doc.setDrawColor(220,220,220);
       doc.setLineWidth(0.4);
       doc.line(margin, 54, W-margin, 54);
-let y = 62;
+      let y = 62;
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(26, 38, 60);
       
-      // Headers
       doc.text("PAYABLE TO", margin, y);
-      // Moved BANK DETAILS further right (to 110mm) for better spacing
       doc.text("BANK DETAILS", margin + 150, y);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(70, 70, 70);
       doc.setFontSize(10);
-
-      // Payable To Column
       doc.text("Ansely Digital", margin, y + 7);
 
-      // Bank Details Column (Aligned with the header above)
       const bankX = margin + 172;
       doc.text("Ansely Digital", bankX, y + 7,{align:"right"});
       doc.text("Sort code: 04-00-03", bankX, y + 13,{align:"right"});
       doc.text("Account number: 10369354", bankX, y + 19,{align:"right"});
+      
       y = 96;
       doc.setFillColor(232,98,26);
       doc.roundedRect(margin, y, W-margin*2, 11, 3, 3, "F");
@@ -193,7 +193,7 @@ let y = 62;
       y += 15;
       doc.setFontSize(10);
       lineItems.forEach((item, idx) => {
-        if (y > 240) { doc.addPage(); y = 20; }
+        if (y > 230) { doc.addPage(); y = 20; }
         if (idx % 2 === 0) {
           doc.setFillColor(252,248,245);
           doc.rect(margin, y-5, W-margin*2, 11, "F");
@@ -210,7 +210,23 @@ let y = 62;
         y += 12;
       });
 
-      y += 10;
+      // Percentage Discount in PDF
+      if (parseFloat(discountPercent) > 0) {
+        y += 4;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text("Subtotal:", W - margin - 52, y);
+        doc.text(`£${subtotal.toFixed(2)}`, W - margin - 4, y, { align: "right" });
+        y += 7;
+        doc.setTextColor(232, 98, 26);
+        doc.text(`Discount (${discountPercent}%):`, W - margin - 52, y);
+        doc.text(`-£${discountAmount.toFixed(2)}`, W - margin - 4, y, { align: "right" });
+        y += 8;
+      } else {
+        y += 10;
+      }
+
       doc.setFillColor(26,38,60);
       doc.roundedRect(W-margin-70, y-6, 70, 14, 3, 3, "F");
       doc.setFontSize(10);
@@ -219,24 +235,15 @@ let y = 62;
       doc.text("TOTAL:", W-margin-52, y+4);
       doc.setTextColor(232,98,26);
       doc.setFontSize(13);
-      doc.text(`£${total.toFixed(2)}`, W-margin-4, y+4, {align:"right"});
+      doc.text(`£${finalTotal.toFixed(2)}`, W-margin-4, y+4, {align:"right"});
 
-      // FOOTER FIX: Added gap between orange strip and navy bar
-      // FOOTER SECTION
       doc.setFillColor(245, 185, 122);
       doc.rect(0, H - 34, W, 6, "F"); 
-
-      // The Navy Bar
       doc.setFillColor(26, 38, 60);
       doc.roundedRect(margin, H - 22, W - margin * 2, 14, 5, 5, "F");
-
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(255, 255, 255);
-
-      // CENTERED TEXT:
-      // We use W/2 (center of page) and {align: "center"}
-      // We can put them side-by-side with a gap
       const footerY = H - 13;
       doc.text("07380909597       www.ansely.co.uk", W / 2, footerY, { align: "center" });
 
@@ -326,9 +333,16 @@ let y = 62;
 
         <div style={{ padding:"8px 32px 0",display:"flex",justifyContent:"flex-end" }}>
           <div style={{ width:310 }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,background:C.navy,borderRadius:12,padding:"14px 18px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 18px", fontSize:13 }}>
+               <span style={{ fontWeight:700, color:"#666" }}>Discount (%):</span>
+               <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                  <input type="number" value={discountPercent} onChange={e=>setDiscountPercent(e.target.value)} placeholder="0" style={inp({ width:80, textAlign:"right", fontWeight:700, color:C.orange })} />
+                  <span style={{ fontWeight:900, color:C.orange }}>%</span>
+               </div>
+            </div>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,background:C.navy,borderRadius:12,padding:"14px 18px" }}>
               <span style={{ color:C.white,fontWeight:800,fontSize:13,letterSpacing:1 }}>TOTAL:</span>
-              <span style={{ color:C.orange,fontWeight:900,fontSize:24 }}>£{total.toFixed(2)}</span>
+              <span style={{ color:C.orange,fontWeight:900,fontSize:24 }}>£{finalTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
