@@ -155,22 +155,28 @@ export default function AnselyInvoice() {
       doc.setDrawColor(220,220,220);
       doc.setLineWidth(0.4);
       doc.line(margin, 54, W-margin, 54);
-
-      let y = 62;
+let y = 62;
       doc.setFontSize(9);
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(26,38,60);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(26, 38, 60);
+      
+      // Headers
       doc.text("PAYABLE TO", margin, y);
-      doc.text("BANK DETAILS", margin+65, y);
+      // Moved BANK DETAILS further right (to 110mm) for better spacing
+      doc.text("BANK DETAILS", margin + 150, y);
 
-      doc.setFont("helvetica","normal");
-      doc.setTextColor(70,70,70);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(70, 70, 70);
       doc.setFontSize(10);
-      doc.text("Ansely Digital", margin, y+7);
-      doc.text("Ansely Digital", margin+65, y+7);
-      doc.text("Sort code: 04-00-03", margin+65, y+13);
-      doc.text("Account number: 10369354", margin+65, y+19);
 
+      // Payable To Column
+      doc.text("Ansely Digital", margin, y + 7);
+
+      // Bank Details Column (Aligned with the header above)
+      const bankX = margin + 172;
+      doc.text("Ansely Digital", bankX, y + 7,{align:"right"});
+      doc.text("Sort code: 04-00-03", bankX, y + 13,{align:"right"});
+      doc.text("Account number: 10369354", bankX, y + 19,{align:"right"});
       y = 96;
       doc.setFillColor(232,98,26);
       doc.roundedRect(margin, y, W-margin*2, 11, 3, 3, "F");
