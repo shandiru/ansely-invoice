@@ -46,12 +46,11 @@ function MultiDropdown({ label, options, selected, onToggle }) {
 }
 
 export default function AnselyInvoice() {
-  const [invoiceNo,setInvoiceNo]=useState(""); const [date,setDate]=useState(""); const [custName,setCustName]=useState(""); const [custAddr,setCustAddr]=useState(""); const [taxPct,setTaxPct]=useState(0); const [activeTab,setActiveTab]=useState("Monthly");
+  const [invoiceNo,setInvoiceNo]=useState(""); const [date,setDate]=useState(""); const [custName,setCustName]=useState(""); const [custAddr,setCustAddr]=useState(""); const [activeTab,setActiveTab]=useState("Monthly");
   const [selMonths,setSelMonths]=useState([]); const [selLite,setSelLite]=useState([]); const [selPro,setSelPro]=useState([]);
   const [lineItems,setLineItems]=useState([]);
   const nextId=useRef(1); const getId=()=>String(nextId.current++);
   const inp=(ex={})=>({ border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 10px",fontSize:13,outline:"none",background:C.white,...ex });
-  // Only orange and navy for categories — no green
   const catColor=cat=>cat==="Monthly"?C.navy:cat==="React Lite"?"#B34A10":cat==="React Pro"?C.orange:"#888";
 
   const toggleMonth = (m) => {
@@ -117,8 +116,7 @@ export default function AnselyInvoice() {
   };
   const addManualItem=()=>setLineItems(prev=>[...prev,{id:getId(),label:"",category:activeTab,qty:1,amount:"",manual:true}]);
 
-  const subtotal=lineItems.reduce((s,l)=>s+(parseFloat(l.amount)||0)*(parseFloat(l.qty)||1),0);
-  const taxAmt=(subtotal*taxPct)/100; const total=subtotal+taxAmt;
+  const total=lineItems.reduce((s,l)=>s+(parseFloat(l.amount)||0)*(parseFloat(l.qty)||1),0);
 
   const handleDownload=()=>{
     const s=document.createElement("script");
@@ -128,31 +126,24 @@ export default function AnselyInvoice() {
       const doc=new jsPDF({unit:"mm",format:"a4"});
       const W=210, H=297, margin=18;
 
-      // ── BACKGROUND white ──
       doc.setFillColor(255,255,255);
       doc.rect(0,0,W,H,"F");
 
-      // ── DECORATIVE CIRCLE (top-right, like the image) ──
-      // Large circle peeking from top-right corner
-      doc.setFillColor(245,185,122); // light orange
+      doc.setFillColor(245,185,122); 
       doc.circle(W+10, -10, 70, "F");
-      // Inner circle slightly smaller, lighter
       doc.setFillColor(248,210,170);
       doc.circle(W+8, -8, 52, "F");
 
-      // ── ANSELY logo (top-left) ──
       doc.setFont("helvetica","bold");
       doc.setFontSize(30);
-      doc.setTextColor(232,98,26); // orange
+      doc.setTextColor(232,98,26);
       doc.text("ANSELY", margin, 22);
 
-      // ── INVOICE heading (top-right) ──
       doc.setFontSize(26);
       doc.setFont("helvetica","bold");
-      doc.setTextColor(26,38,60); // navy
+      doc.setTextColor(26,38,60);
       doc.text("INVOICE", W-margin, 20, {align:"right"});
 
-      // Invoice meta (right side)
       doc.setFontSize(10);
       doc.setFont("helvetica","normal");
       doc.setTextColor(80,80,80);
@@ -161,12 +152,10 @@ export default function AnselyInvoice() {
       doc.text(`Name: ${custName||"—"}`, W-margin, 40, {align:"right"});
       doc.text(`Address: ${custAddr||"—"}`, W-margin, 46, {align:"right"});
 
-      // ── DIVIDER LINE ──
       doc.setDrawColor(220,220,220);
       doc.setLineWidth(0.4);
       doc.line(margin, 54, W-margin, 54);
 
-      // ── PAYABLE TO & BANK DETAILS ──
       let y = 62;
       doc.setFontSize(9);
       doc.setFont("helvetica","bold");
@@ -182,12 +171,9 @@ export default function AnselyInvoice() {
       doc.text("Sort code: 04-00-03", margin+65, y+13);
       doc.text("Account number: 10369354", margin+65, y+19);
 
-      // ── TABLE HEADER ──
       y = 96;
-      // Orange gradient-like header bar
       doc.setFillColor(232,98,26);
       doc.roundedRect(margin, y, W-margin*2, 11, 3, 3, "F");
-      // Lighter right portion to simulate gradient
       doc.setFillColor(245,164,80);
       doc.roundedRect(W/2, y, W/2-margin, 11, 3, 3, "F");
 
@@ -198,66 +184,27 @@ export default function AnselyInvoice() {
       doc.text("QTY", margin+115, y+7.5, {align:"center"});
       doc.text("TOTAL", W-margin-4, y+7.5, {align:"right"});
 
-      // ── LINE ITEMS ──
       y += 15;
       doc.setFontSize(10);
       lineItems.forEach((item, idx) => {
-        if (y > 255) { doc.addPage(); y = 20; }
-        // Alternating row bg
+        if (y > 240) { doc.addPage(); y = 20; }
         if (idx % 2 === 0) {
           doc.setFillColor(252,248,245);
           doc.rect(margin, y-5, W-margin*2, 11, "F");
         }
-        // Item label
         doc.setFont("helvetica","normal");
         doc.setTextColor(51,51,51);
         doc.text(item.label||"(custom item)", margin+4, y+1.5);
-        // Qty
         doc.setTextColor(100,100,100);
         doc.text(String(item.qty||1), margin+115, y+1.5, {align:"center"});
-        // Line total
         const lt = (parseFloat(item.amount)||0)*(parseFloat(item.qty)||1);
         doc.setFont("helvetica","bold");
         doc.setTextColor(26,38,60);
         doc.text(`£${lt.toFixed(2)}`, W-margin-4, y+1.5, {align:"right"});
-        doc.setFont("helvetica","normal");
         y += 12;
       });
 
-      if (lineItems.length === 0) {
-        doc.setFont("helvetica","normal");
-        doc.setTextColor(180,180,180);
-        doc.text("No items", margin+4, y+1.5);
-        y += 12;
-      }
-
-      // ── DIVIDER before totals ──
-      y += 4;
-      doc.setDrawColor(220,220,220);
-      doc.setLineWidth(0.3);
-      doc.line(W-margin-70, y, W-margin, y);
-      y += 8;
-
-      // Subtotal row
-      doc.setFontSize(10);
-      doc.setFont("helvetica","normal");
-      doc.setTextColor(100,100,100);
-      doc.text("SUB TOTAL", W-margin-62, y);
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(26,38,60);
-      doc.text(`£${subtotal.toFixed(2)}`, W-margin, y, {align:"right"});
-      y += 9;
-
-      // Tax row
-      doc.setFont("helvetica","normal");
-      doc.setTextColor(100,100,100);
-      doc.text(`Tax (${taxPct}%):`, W-margin-62, y);
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(26,38,60);
-      doc.text(`£${taxAmt.toFixed(2)}`, W-margin, y, {align:"right"});
-      y += 14;
-
-      // TOTAL box — navy bg
+      y += 10;
       doc.setFillColor(26,38,60);
       doc.roundedRect(W-margin-70, y-6, 70, 14, 3, 3, "F");
       doc.setFontSize(10);
@@ -268,22 +215,26 @@ export default function AnselyInvoice() {
       doc.setFontSize(13);
       doc.text(`£${total.toFixed(2)}`, W-margin-4, y+4, {align:"right"});
 
-      // ── FOOTER ──
-      // Warm gradient strip
-      doc.setFillColor(245,185,122);
-      doc.rect(0, H-28, W, 8, "F");
+      // FOOTER FIX: Added gap between orange strip and navy bar
+      // FOOTER SECTION
+      doc.setFillColor(245, 185, 122);
+      doc.rect(0, H - 34, W, 6, "F"); 
 
-      // Dark navy pill
-      doc.setFillColor(26,38,60);
-      doc.roundedRect(margin, H-20, W-margin*2, 14, 5, 5, "F");
+      // The Navy Bar
+      doc.setFillColor(26, 38, 60);
+      doc.roundedRect(margin, H - 22, W - margin * 2, 14, 5, 5, "F");
 
       doc.setFontSize(10);
-      doc.setFont("helvetica","normal");
-      doc.setTextColor(255,255,255);
-      doc.text("07380909597", margin+14, H-11);
-      doc.text("www.ansely.co.uk", W-margin-14, H-11, {align:"right"});
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(255, 255, 255);
 
-      doc.save(`Ansely-Invoice-${invoiceNo||"draft"}.pdf`);
+      // CENTERED TEXT:
+      // We use W/2 (center of page) and {align: "center"}
+      // We can put them side-by-side with a gap
+      const footerY = H - 13;
+      doc.text("07380909597       www.ansely.co.uk", W / 2, footerY, { align: "center" });
+
+      doc.save(`Ansely-Invoice-${invoiceNo || "draft"}.pdf`);
     };
     document.head.appendChild(s);
   };
@@ -293,7 +244,6 @@ export default function AnselyInvoice() {
       <div style={{ maxWidth:820,margin:"0 auto",background:C.white,borderRadius:18,boxShadow:"0 10px 48px rgba(0,0,0,0.12)" }}>
         <div style={{ height:6,background:`linear-gradient(90deg,${C.orange},#F5A450)`,borderRadius:"18px 18px 0 0" }}/>
 
-        {/* HEADER */}
         <div style={{ padding:"26px 32px 0",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:16 }}>
           <div>
             <div style={{ fontSize:36,fontWeight:900,color:C.orange,letterSpacing:4,lineHeight:1 }}>ANSELY</div>
@@ -310,7 +260,6 @@ export default function AnselyInvoice() {
           </div>
         </div>
 
-        {/* BANK */}
         <div style={{ padding:"18px 32px 0",display:"flex",gap:48,flexWrap:"wrap" }}>
           <div><div style={{ fontSize:10,fontWeight:800,color:C.navy,letterSpacing:1,marginBottom:4 }}>PAYABLE TO</div><div style={{ fontSize:13,color:"#444" }}>Ansely Digital</div></div>
           <div><div style={{ fontSize:10,fontWeight:800,color:C.navy,letterSpacing:1,marginBottom:4 }}>BANK DETAILS</div>
@@ -318,7 +267,6 @@ export default function AnselyInvoice() {
           </div>
         </div>
 
-        {/* SELECTOR PANEL */}
         <div style={{ margin:"20px 32px 0",background:C.light,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 20px" }}>
           <div style={{ fontSize:11,fontWeight:800,color:C.navy,letterSpacing:1,marginBottom:12 }}>ADD ITEMS TO INVOICE</div>
           <div style={{ display:"flex",gap:6,marginBottom:14 }}>
@@ -329,10 +277,8 @@ export default function AnselyInvoice() {
           {activeTab==="Monthly"&&<MultiDropdown label="months" options={MONTHS} selected={selMonths} onToggle={toggleMonth}/>}
           {activeTab==="React Lite"&&<MultiDropdown label="deposits" options={DEPOSITS["React Lite"]} selected={selLite} onToggle={toggleLite}/>}
           {activeTab==="React Pro"&&<MultiDropdown label="deposits" options={DEPOSITS["React Pro"]} selected={selPro} onToggle={togglePro}/>}
-          <div style={{ fontSize:11,color:"#aaa",marginTop:4 }}>↑ Select from dropdown — rows appear in the invoice below</div>
         </div>
 
-        {/* TABLE HEADER */}
         <div style={{ padding:"16px 32px 0" }}>
           <div style={{ background:`linear-gradient(90deg,${C.orange},#F5A450)`,borderRadius:10,padding:"10px 16px",display:"grid",gridTemplateColumns:"3fr 1.2fr 0.7fr 1.2fr 36px",gap:8,alignItems:"center" }}>
             <span style={{ color:C.white,fontWeight:800,fontSize:10,letterSpacing:1 }}>ITEM DESCRIPTION</span>
@@ -343,10 +289,9 @@ export default function AnselyInvoice() {
           </div>
         </div>
 
-        {/* LINE ITEMS */}
         <div style={{ padding:"4px 32px 0" }}>
           {lineItems.length===0?(
-            <div style={{ textAlign:"center",color:"#ccc",fontSize:13,padding:"28px 0" }}>No items yet — select from the panel above or click "Add Item" below</div>
+            <div style={{ textAlign:"center",color:"#ccc",fontSize:13,padding:"28px 0" }}>No items selected</div>
           ):lineItems.map((item,idx)=>(
             <div key={item.id} style={{ display:"grid",gridTemplateColumns:"3fr 1.2fr 0.7fr 1.2fr 36px",gap:8,alignItems:"center",padding:"8px 4px",borderBottom:`1px solid ${C.grey}`,background:idx%2===0?C.white:"#FDFAF8" }}>
               {item.manual?(<input value={item.label} onChange={e=>updateItem(item.id,"label",e.target.value)} placeholder="Item description..." style={inp({width:"100%",fontSize:13})}/>):(<span style={{ fontSize:13,color:"#333",fontWeight:500 }}>{item.label}</span>)}
@@ -362,47 +307,19 @@ export default function AnselyInvoice() {
                 <span style={{ color:"#aaa",fontSize:12,flexShrink:0 }}>£</span>
                 <input type="number" min="0" step="0.01" placeholder="0.00" value={item.amount} onChange={e=>updateItem(item.id,"amount",e.target.value)} style={inp({flex:1,textAlign:"right",fontWeight:700,color:C.navy,fontSize:14,minWidth:0})}/>
               </div>
-              <div onClick={()=>removeItem(item.id)} style={{ width:26,height:26,borderRadius:"50%",background:"#fee2e2",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:"#ef4444",fontWeight:900,flexShrink:0 }}>×</div>
+              <div onClick={()=>removeItem(item.id)} style={{ width:26,height:26,borderRadius:"50%",background:"#fee2e2",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:"#ef4444",fontWeight:900 }}>×</div>
             </div>
           ))}
 
-          {/* ADD ITEM BUTTON */}
           <div style={{ padding:"12px 0 6px" }}>
             <button onClick={addManualItem} style={{ display:"flex",alignItems:"center",gap:8,background:"transparent",border:`2px dashed ${C.orange}`,borderRadius:10,padding:"10px 20px",cursor:"pointer",color:C.orange,fontWeight:700,fontSize:13,width:"100%",justifyContent:"center" }}>
-              <span style={{ fontSize:20,lineHeight:1,fontWeight:400 }}>+</span> Add Item Manually
+              <span style={{ fontSize:20 }}>+</span> Add Item Manually
             </button>
           </div>
         </div>
 
-        {/* TOTALS */}
         <div style={{ padding:"8px 32px 0",display:"flex",justifyContent:"flex-end" }}>
           <div style={{ width:310 }}>
-            {["Monthly","React Lite","React Pro"].map(cat=>{
-              const catItems=lineItems.filter(x=>x.category===cat);
-              const catTotal=catItems.reduce((s,l)=>s+(parseFloat(l.amount)||0)*(parseFloat(l.qty)||1),0);
-              if(catItems.length===0)return null;
-              return(
-                <div key={cat} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:12 }}>
-                  <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                    <span style={{ width:9,height:9,borderRadius:"50%",background:catColor(cat),display:"inline-block",flexShrink:0 }}/>
-                    <span style={{ color:"#888" }}>{cat}:</span>
-                  </div>
-                  <span style={{ fontWeight:600,color:C.navy }}>£{catTotal.toFixed(2)}</span>
-                </div>
-              );
-            })}
-            {lineItems.length>0&&<div style={{ height:1,background:C.border,margin:"8px 0" }}/>}
-            <div style={{ display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.grey}`,fontSize:13 }}>
-              <span style={{ color:"#888" }}>Subtotal:</span><span style={{ fontWeight:700,color:C.navy }}>£{subtotal.toFixed(2)}</span>
-            </div>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.grey}`,fontSize:13 }}>
-              <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-                <span style={{ color:"#888" }}>Tax</span>
-                <input type="number" min="0" max="100" value={taxPct} onChange={e=>setTaxPct(parseFloat(e.target.value)||0)} style={inp({width:52,textAlign:"center"})}/>
-                <span style={{ color:"#888" }}>%</span>
-              </div>
-              <span style={{ fontWeight:700,color:C.navy }}>£{taxAmt.toFixed(2)}</span>
-            </div>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,background:C.navy,borderRadius:12,padding:"14px 18px" }}>
               <span style={{ color:C.white,fontWeight:800,fontSize:13,letterSpacing:1 }}>TOTAL:</span>
               <span style={{ color:C.orange,fontWeight:900,fontSize:24 }}>£{total.toFixed(2)}</span>
@@ -410,11 +327,10 @@ export default function AnselyInvoice() {
           </div>
         </div>
 
-        {/* FOOTER */}
-        <div style={{ marginTop:24,background:"linear-gradient(180deg,#F5B97A,#F5D0A8)",height:20 }}/>
+        <div style={{ marginTop:40,background:"linear-gradient(180deg,#F5B97A,#F5D0A8)",height:20 }}/>
         <div style={{ background:C.navy,margin:"0 20px 20px",borderRadius:30,padding:"14px 28px",display:"flex",justifyContent:"center",gap:48,alignItems:"center" }}>
-          <span style={{ color:C.white,fontSize:13 }}>📞&nbsp; 07380909597</span>
-          <span style={{ color:C.white,fontSize:13 }}>🌐&nbsp; www.ansely.co.uk</span>
+          <span style={{ color:C.white,fontSize:13 }}>📞 07380909597</span>
+          <span style={{ color:C.white,fontSize:13 }}>🌐 www.ansely.co.uk</span>
         </div>
       </div>
 
